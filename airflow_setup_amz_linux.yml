@@ -1,0 +1,101 @@
+---
+- hosts:
+    test
+  order: inventory
+  remote_user: ec2-user
+  become: yes
+  become_method: sudo
+  tasks:
+  - name: update all packages
+    yum:
+      name: '*'
+      state: latest
+
+#  - name: install EPEL repo
+#    yum:
+#      name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+#      state: present
+#  - name: enable epel-testing repo
+#    command: yum-config-manager --enable epel
+
+# maybe python36 is not available in amazon linux. change to python35 if so. same with pip
+  - name: install python
+    yum:
+      name:
+        - python36
+        - python36-pip
+        - python36-virtualenv
+        - python36-setuptools
+      state:
+        latest
+
+  - name: install airflow system dependencies
+    yum:
+      name:
+        - tmux
+        - gcc
+        - epel-release
+        - erlang
+#        - rabbitmq-server
+        - librabbitmq
+        - librabbitmq-devel
+        - openssl-devel
+        - mysql-devel
+        - krb5-server
+        - krb5-libs
+        - cyrus-sasl-devel
+      state:
+        latest
+
+  - name: install numpy and pandas
+    pip:
+      executable=pip-3.6
+      state=present
+      name={{ item.name }}
+      version={{ item.version | default(omit) }}
+    with_items:
+      - name: numpy
+        version: 1.13.3
+      - name: scikit-learn
+        version: 0.19.1
+      - name: celery
+        version: 3.1.25
+      - name: mysqlclient
+      - name: psycopg2
+      - name: sqlalchemy
+      - name: cryptography
+      - name: flask_oauthlib
+ 
+  - name: install airflow
+    pip:
+      executable:
+        pip-3.6
+      state:
+        latest
+      name:
+        - apache-airflow[async]
+        - apache-airflow[devel]
+        - apache-airflow[devel_hadoop]
+        - apache-airflow[crypto]
+        - apache-airflow[druid]
+        - apache-airflow[jdbc]
+        - apache-airflow[hdfs]
+        - apache-airflow[hive]
+        - apache-airflow[kerberos]
+        - apache-airflow[ldap]
+        - apache-airflow[password]
+        - apache-airflow[postgres]
+        - apache-airflow[qds]
+        - apache-airflow[rabbitmq]
+        - apache-airflow[s3]
+        - apache-airflow[samba]
+        - apache-airflow[slack]
+        - apache-airflow[vertica]
+        - apache-airflow[cloudant]
+        - apache-airflow[redis]
+  - name: add PYTHON path in bashrc
+    lineinfile: dest=/home/$USER/.bashrc line='export PYTHONPATH=/home/$USER/data-pipelines' insertafter='EOF' state=present
+    become_user: ec2-user
+  - name: source the bashrc file
+    shell: source /home/$USER/.bashrc
+    become_user: ec2-user
